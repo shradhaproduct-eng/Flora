@@ -10,6 +10,7 @@
   "scripts": {
     "build": "npm run build --workspace client",
     "dev:server": "npm run start --workspace server",
-    "dev:client": "npm run dev --workspace client"
+    "dev:client": "npm run dev --workspace client",
+    "import:flowers": "node scripts/import-flowers-csv.js"
   }
 }

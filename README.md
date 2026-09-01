@@ -37,12 +37,14 @@ This is an npm workspaces monorepo (root `package.json` lists `client` and
 both.
 
 ```
-api/[...path].js     Vercel serverless entry point (catch-all for /api/*)
-server/src/app.js    Express app (routes, middleware) — shared by both entry points
-server/src/index.js  Local dev entry point (Node http server via app.listen)
-server/src/db.js     Postgres pool + schema/seed migration
-client/               React + Vite frontend
-vercel.json           Vercel build config
+api/[...path].js             Vercel serverless entry point (catch-all for /api/*)
+server/src/app.js            Express app (routes, middleware) — shared by both entry points
+server/src/index.js          Local dev entry point (Node http server via app.listen)
+server/src/db.js             Postgres pool + schema/seed migration
+scripts/import-flowers-csv.js  Standalone CSV → Postgres import (see below)
+data/reemflora-flowers-greeneries.csv  Bundled default flower catalog
+client/                      React + Vite frontend
+vercel.json                  Vercel build config
 ```
 
 ## Local development
@@ -67,9 +69,10 @@ npm run dev:client
 
 Open http://localhost:5173. The Vite dev server proxies `/api` requests to
 the backend on port 4000. On first request, the API auto-creates its
-tables and seeds a starter flower catalog plus default global settings
-(materials/extras cost = $5.00, markup multiplier = 2.5×) — both editable
-from the **Flower Catalog & Settings** tab.
+tables and seeds a starter flower catalog (the Reemflora price list in
+`data/reemflora-flowers-greeneries.csv` — see below) plus default global
+settings (materials/extras cost = AED 5.00, markup multiplier = 2.5×) —
+both editable from the **Flower Catalog & Settings** tab.
 
 **No local Postgres handy?** Run one in Docker:
 ```bash
@@ -94,6 +97,32 @@ That matches the default `DATABASE_URL` in `server/.env.example`.
 
 No `vercel dev`/CLI required — pushing to the connected GitHub branch (or
 clicking Deploy) is enough once the Postgres storage is connected.
+
+## Importing flowers directly into a database
+
+`scripts/import-flowers-csv.js` upserts a CSV straight into a Postgres
+database — the same upsert-by-name logic as the app's own **Upload CSV**
+button, just run from a terminal against a connection string instead of
+through the web UI. Useful for seeding a database (e.g. right after
+connecting a fresh Neon store) without clicking through the app.
+
+```bash
+# Get the connection string from Vercel: Project → Storage → your Postgres
+# store → ".env.local" tab (or from the Neon console directly).
+DATABASE_URL="postgres://user:pass@host/db?sslmode=require" npm run import:flowers
+```
+
+With no path argument it imports `data/reemflora-flowers-greeneries.csv`
+(this repo's own bundled catalog — the same 126-item Reemflora price list
+that's also the app's built-in default). Pass a different path to import
+something else:
+
+```bash
+DATABASE_URL="..." npm run import:flowers -- path/to/other-file.csv
+```
+
+Safe to re-run — it upserts by flower name, so running it again after
+refreshing a price sheet just updates prices instead of duplicating rows.
 
 ## API overview
 
