@@ -1,0 +1,7 @@
+node_modules/
+dist/
+server/flora.db
+server/flora.db-shm
+server/flora.db-wal
+*.log
+.DS_Store
