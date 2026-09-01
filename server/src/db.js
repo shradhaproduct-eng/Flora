@@ -2,26 +2,55 @@ import pg from "pg";
 
 const { Pool } = pg;
 
-// Vercel's Postgres storage (Neon-backed) sets POSTGRES_URL; a plain
-// DATABASE_URL works for any other Postgres host (local dev, Railway,
-// Supabase, etc).
-const connectionString =
-  process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+// Lazily constructed on first use rather than at module import time. A
+// serverless function that throws synchronously while its module is still
+// being evaluated (as this did before, when no connection string was set)
+// often surfaces to the client as a bare 404 instead of a 500 -- Vercel's
+// router can't resolve a function that never finished loading, so the
+// underlying error never reaches anyone. Deferring this into a getter means
+// a misconfigured env var instead fails inside a request, where it's caught
+// by app.js's error handler and returned as a normal JSON 500.
+let _pool = null;
 
-if (!connectionString) {
-  throw new Error(
-    "No Postgres connection string found. Set POSTGRES_URL or DATABASE_URL in your environment " +
-      "(see .env.example)."
-  );
+function getPool() {
+  if (_pool) return _pool;
+
+  // Vercel's Postgres storage (Neon-backed) sets POSTGRES_URL; a plain
+  // DATABASE_URL works for any other Postgres host (local dev, Railway,
+  // Supabase, etc).
+  const connectionString =
+    process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+
+  if (!connectionString) {
+    throw new Error(
+      "No Postgres connection string found. Set POSTGRES_URL or DATABASE_URL in your environment " +
+        "(see .env.example)."
+    );
+  }
+
+  _pool = new Pool({
+    connectionString,
+    // Hosted providers (Neon, Vercel Postgres, Supabase, Render) require TLS
+    // and use certs that Node's default trust store won't validate; local
+    // Postgres has no sslmode in its connection string, so this stays off.
+    ssl: /sslmode=require/.test(connectionString) ? { rejectUnauthorized: false } : false,
+  });
+  return _pool;
 }
 
-export const pool = new Pool({
-  connectionString,
-  // Hosted providers (Neon, Vercel Postgres, Supabase, Render) require TLS
-  // and use certs that Node's default trust store won't validate; local
-  // Postgres has no sslmode in its connection string, so this stays off.
-  ssl: /sslmode=require/.test(connectionString) ? { rejectUnauthorized: false } : false,
-});
+// A Proxy so existing call sites (`pool.query(...)`, `pool.connect()`) keep
+// working unchanged, while the real Pool -- and its connection-string check
+// -- is only created the first time something is actually called on it.
+export const pool = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const real = getPool();
+      const value = real[prop];
+      return typeof value === "function" ? value.bind(real) : value;
+    },
+  }
+);
 
 // Runs once per warm serverless instance (or once at local startup) and is
 // otherwise a cheap no-op, so it's safe to call from request middleware.
