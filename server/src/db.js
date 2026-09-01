@@ -1,86 +1,101 @@
-import Database from "better-sqlite3";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import pg from "pg";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.FLORA_DB_PATH || path.join(__dirname, "..", "flora.db");
+const { Pool } = pg;
 
-export const db = new Database(DB_PATH);
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+// Vercel's Postgres storage (Neon-backed) sets POSTGRES_URL; a plain
+// DATABASE_URL works for any other Postgres host (local dev, Railway,
+// Supabase, etc).
+const connectionString =
+  process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS flowers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    stem_price REAL NOT NULL CHECK (stem_price >= 0),
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+if (!connectionString) {
+  throw new Error(
+    "No Postgres connection string found. Set POSTGRES_URL or DATABASE_URL in your environment " +
+      "(see .env.example)."
   );
-
-  CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS arrangements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    materials_cost REAL NOT NULL DEFAULT 0,
-    markup_multiplier REAL NOT NULL DEFAULT 1,
-    stems_cost REAL NOT NULL DEFAULT 0,
-    total_cost REAL NOT NULL DEFAULT 0,
-    selling_price REAL NOT NULL DEFAULT 0,
-    profit REAL NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS arrangement_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    arrangement_id INTEGER NOT NULL REFERENCES arrangements(id) ON DELETE CASCADE,
-    flower_id INTEGER REFERENCES flowers(id) ON DELETE SET NULL,
-    flower_name TEXT NOT NULL,
-    stem_price REAL NOT NULL,
-    stems INTEGER NOT NULL CHECK (stems >= 0),
-    line_total REAL NOT NULL
-  );
-`);
-
-// Seed default global settings (materials/extras cost + markup multiplier)
-// used as "universal constants" that pre-fill every new arrangement and can
-// be overridden per-arrangement without changing the global default.
-const defaultSettings = {
-  default_materials_cost: "5.00",
-  default_markup_multiplier: "2.5",
-};
-
-const insertSetting = db.prepare(
-  "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
-);
-for (const [key, value] of Object.entries(defaultSettings)) {
-  insertSetting.run(key, value);
 }
 
-// Seed a small starter flower catalog so the app isn't empty before the
-// one-time CSV upload happens.
-const flowerCount = db.prepare("SELECT COUNT(*) AS c FROM flowers").get().c;
-if (flowerCount === 0) {
-  const insertFlower = db.prepare(
-    "INSERT OR IGNORE INTO flowers (name, stem_price) VALUES (?, ?)"
+export const pool = new Pool({
+  connectionString,
+  // Hosted providers (Neon, Vercel Postgres, Supabase, Render) require TLS
+  // and use certs that Node's default trust store won't validate; local
+  // Postgres has no sslmode in its connection string, so this stays off.
+  ssl: /sslmode=require/.test(connectionString) ? { rejectUnauthorized: false } : false,
+});
+
+// Runs once per warm serverless instance (or once at local startup) and is
+// otherwise a cheap no-op, so it's safe to call from request middleware.
+let migrated = null;
+export function ensureSchema() {
+  if (!migrated) migrated = runMigration();
+  return migrated;
+}
+
+async function runMigration() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS flowers (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      stem_price DOUBLE PRECISION NOT NULL CHECK (stem_price >= 0),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS arrangements (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      materials_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+      markup_multiplier DOUBLE PRECISION NOT NULL DEFAULT 1,
+      stems_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+      total_cost DOUBLE PRECISION NOT NULL DEFAULT 0,
+      selling_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+      profit DOUBLE PRECISION NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS arrangement_items (
+      id SERIAL PRIMARY KEY,
+      arrangement_id INTEGER NOT NULL REFERENCES arrangements(id) ON DELETE CASCADE,
+      flower_id INTEGER REFERENCES flowers(id) ON DELETE SET NULL,
+      flower_name TEXT NOT NULL,
+      stem_price DOUBLE PRECISION NOT NULL,
+      stems INTEGER NOT NULL CHECK (stems >= 0),
+      line_total DOUBLE PRECISION NOT NULL
+    );
+  `);
+
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES ('default_materials_cost', '5.00')
+     ON CONFLICT (key) DO NOTHING`
   );
-  const starter = [
-    ["Rose", 2.5],
-    ["Tulip", 1.75],
-    ["Lily", 3.0],
-    ["Carnation", 1.25],
-    ["Peony", 4.5],
-    ["Hydrangea", 5.0],
-    ["Baby's Breath", 1.0],
-    ["Sunflower", 2.25],
-  ];
-  const insertMany = db.transaction((rows) => {
-    for (const [name, price] of rows) insertFlower.run(name, price);
-  });
-  insertMany(starter);
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES ('default_markup_multiplier', '2.5')
+     ON CONFLICT (key) DO NOTHING`
+  );
+
+  const { rows } = await pool.query("SELECT COUNT(*)::int AS c FROM flowers");
+  if (rows[0].c === 0) {
+    const starter = [
+      ["Rose", 2.5],
+      ["Tulip", 1.75],
+      ["Lily", 3.0],
+      ["Carnation", 1.25],
+      ["Peony", 4.5],
+      ["Hydrangea", 5.0],
+      ["Baby's Breath", 1.0],
+      ["Sunflower", 2.25],
+    ];
+    for (const [name, price] of starter) {
+      await pool.query(
+        "INSERT INTO flowers (name, stem_price) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING",
+        [name, price]
+      );
+    }
+  }
 }

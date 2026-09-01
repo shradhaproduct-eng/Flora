@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db.js";
+import { pool } from "../db.js";
 
 const router = Router();
 
@@ -44,93 +44,139 @@ function validatePayload(body) {
   return { errors, name, items: cleanItems, materials_cost, markup_multiplier };
 }
 
-router.get("/", (req, res) => {
-  const arrangements = db
-    .prepare("SELECT * FROM arrangements ORDER BY updated_at DESC, id DESC")
-    .all();
-  res.json(arrangements);
+async function insertItems(client, arrangementId, items) {
+  for (const item of items) {
+    await client.query(
+      `INSERT INTO arrangement_items (arrangement_id, flower_id, flower_name, stem_price, stems, line_total)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [arrangementId, item.flower_id, item.flower_name, item.stem_price, item.stems, item.line_total]
+    );
+  }
+}
+
+async function fetchItems(client, arrangementId) {
+  const { rows } = await client.query(
+    "SELECT * FROM arrangement_items WHERE arrangement_id = $1 ORDER BY id ASC",
+    [arrangementId]
+  );
+  return rows;
+}
+
+router.get("/", async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM arrangements ORDER BY updated_at DESC, id DESC"
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res, next) => {
   const id = Number(req.params.id);
-  const arrangement = db.prepare("SELECT * FROM arrangements WHERE id = ?").get(id);
-  if (!arrangement) return res.status(404).json({ error: "Arrangement not found." });
-  const items = db
-    .prepare("SELECT * FROM arrangement_items WHERE arrangement_id = ? ORDER BY id ASC")
-    .all(id);
-  res.json({ ...arrangement, items });
+  try {
+    const { rows } = await pool.query("SELECT * FROM arrangements WHERE id = $1", [id]);
+    const arrangement = rows[0];
+    if (!arrangement) return res.status(404).json({ error: "Arrangement not found." });
+    const items = await fetchItems(pool, id);
+    res.json({ ...arrangement, items });
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res, next) => {
   const { errors, name, items, materials_cost, markup_multiplier } = validatePayload(req.body || {});
   if (errors.length > 0) return res.status(400).json({ error: errors.join(" ") });
-
   const totals = computeTotals({ items, materials_cost, markup_multiplier });
 
-  const insertArrangement = db.prepare(`
-    INSERT INTO arrangements
-      (name, materials_cost, markup_multiplier, stems_cost, total_cost, selling_price, profit, updated_at)
-    VALUES (@name, @materials_cost, @markup_multiplier, @stems_cost, @total_cost, @selling_price, @profit, datetime('now'))
-  `);
-  const insertItem = db.prepare(`
-    INSERT INTO arrangement_items (arrangement_id, flower_id, flower_name, stem_price, stems, line_total)
-    VALUES (@arrangement_id, @flower_id, @flower_name, @stem_price, @stems, @line_total)
-  `);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query(
+      `INSERT INTO arrangements
+         (name, materials_cost, markup_multiplier, stems_cost, total_cost, selling_price, profit, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+       RETURNING *`,
+      [
+        name,
+        materials_cost,
+        markup_multiplier,
+        totals.stems_cost,
+        totals.total_cost,
+        totals.selling_price,
+        totals.profit,
+      ]
+    );
+    const arrangement = rows[0];
+    await insertItems(client, arrangement.id, items);
+    await client.query("COMMIT");
 
-  const arrangementId = db.transaction(() => {
-    const info = insertArrangement.run({ name, materials_cost, markup_multiplier, ...totals });
-    const id = info.lastInsertRowid;
-    for (const item of items) insertItem.run({ arrangement_id: id, ...item });
-    return id;
-  })();
-
-  const saved = db.prepare("SELECT * FROM arrangements WHERE id = ?").get(arrangementId);
-  const savedItems = db
-    .prepare("SELECT * FROM arrangement_items WHERE arrangement_id = ? ORDER BY id ASC")
-    .all(arrangementId);
-  res.status(201).json({ ...saved, items: savedItems });
+    const savedItems = await fetchItems(client, arrangement.id);
+    res.status(201).json({ ...arrangement, items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    next(err);
+  } finally {
+    client.release();
+  }
 });
 
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res, next) => {
   const id = Number(req.params.id);
-  const existing = db.prepare("SELECT * FROM arrangements WHERE id = ?").get(id);
-  if (!existing) return res.status(404).json({ error: "Arrangement not found." });
+  const client = await pool.connect();
+  try {
+    const { rows: existingRows } = await client.query("SELECT id FROM arrangements WHERE id = $1", [id]);
+    if (existingRows.length === 0) {
+      return res.status(404).json({ error: "Arrangement not found." });
+    }
 
-  const { errors, name, items, materials_cost, markup_multiplier } = validatePayload(req.body || {});
-  if (errors.length > 0) return res.status(400).json({ error: errors.join(" ") });
+    const { errors, name, items, materials_cost, markup_multiplier } = validatePayload(req.body || {});
+    if (errors.length > 0) return res.status(400).json({ error: errors.join(" ") });
+    const totals = computeTotals({ items, materials_cost, markup_multiplier });
 
-  const totals = computeTotals({ items, materials_cost, markup_multiplier });
+    await client.query("BEGIN");
+    const { rows } = await client.query(
+      `UPDATE arrangements SET
+         name = $1, materials_cost = $2, markup_multiplier = $3,
+         stems_cost = $4, total_cost = $5, selling_price = $6, profit = $7, updated_at = now()
+       WHERE id = $8
+       RETURNING *`,
+      [
+        name,
+        materials_cost,
+        markup_multiplier,
+        totals.stems_cost,
+        totals.total_cost,
+        totals.selling_price,
+        totals.profit,
+        id,
+      ]
+    );
+    await client.query("DELETE FROM arrangement_items WHERE arrangement_id = $1", [id]);
+    await insertItems(client, id, items);
+    await client.query("COMMIT");
 
-  const updateArrangement = db.prepare(`
-    UPDATE arrangements SET
-      name = @name, materials_cost = @materials_cost, markup_multiplier = @markup_multiplier,
-      stems_cost = @stems_cost, total_cost = @total_cost, selling_price = @selling_price,
-      profit = @profit, updated_at = datetime('now')
-    WHERE id = @id
-  `);
-  const insertItem = db.prepare(`
-    INSERT INTO arrangement_items (arrangement_id, flower_id, flower_name, stem_price, stems, line_total)
-    VALUES (@arrangement_id, @flower_id, @flower_name, @stem_price, @stems, @line_total)
-  `);
-
-  db.transaction(() => {
-    updateArrangement.run({ id, name, materials_cost, markup_multiplier, ...totals });
-    db.prepare("DELETE FROM arrangement_items WHERE arrangement_id = ?").run(id);
-    for (const item of items) insertItem.run({ arrangement_id: id, ...item });
-  })();
-
-  const saved = db.prepare("SELECT * FROM arrangements WHERE id = ?").get(id);
-  const savedItems = db
-    .prepare("SELECT * FROM arrangement_items WHERE arrangement_id = ? ORDER BY id ASC")
-    .all(id);
-  res.json({ ...saved, items: savedItems });
+    const savedItems = await fetchItems(client, id);
+    res.json({ ...rows[0], items: savedItems });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    next(err);
+  } finally {
+    client.release();
+  }
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   const id = Number(req.params.id);
-  const info = db.prepare("DELETE FROM arrangements WHERE id = ?").run(id);
-  if (info.changes === 0) return res.status(404).json({ error: "Arrangement not found." });
-  res.status(204).end();
+  try {
+    const { rowCount } = await pool.query("DELETE FROM arrangements WHERE id = $1", [id]);
+    if (rowCount === 0) return res.status(404).json({ error: "Arrangement not found." });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

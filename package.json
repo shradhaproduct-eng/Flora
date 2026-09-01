@@ -1,0 +1,15 @@
+{
+  "name": "flora",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace client",
+    "dev:server": "npm run start --workspace server",
+    "dev:client": "npm run dev --workspace client"
+  }
+}
