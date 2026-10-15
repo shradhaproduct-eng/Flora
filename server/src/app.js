@@ -4,6 +4,7 @@ import { ensureSchema } from "./db.js";
 import flowersRouter from "./routes/flowers.js";
 import settingsRouter from "./routes/settings.js";
 import arrangementsRouter from "./routes/arrangements.js";
+import agentRouter from "./routes/agent.js";
 
 // Builds the Express app without starting a listener, so it can be reused
 // both by the local dev server (server/src/index.js, via app.listen) and
@@ -26,6 +27,7 @@ export function createApp() {
   app.use("/api/flowers", flowersRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api/arrangements", arrangementsRouter);
+  app.use("/api/agent", agentRouter);
 
   // Generic error handler so unexpected exceptions return JSON, not HTML.
   app.use((err, req, res, next) => {

@@ -34,7 +34,7 @@ export default function SavedArrangements({ arrangements, onEdit, onDelete }) {
                 <td className={a.profit >= 0 ? "profit-positive" : "profit-negative"}>
                   {formatCurrency(a.profit)}
                 </td>
-                <td className="muted">{new Date(a.updated_at + "Z").toLocaleDateString()}</td>
+                <td className="muted">{new Date(a.updated_at).toLocaleDateString()}</td>
                 <td className="row-actions">
                   <button className="btn-link" onClick={() => onEdit(a.id)}>
                     Edit

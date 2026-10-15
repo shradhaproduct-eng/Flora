@@ -34,4 +34,6 @@ export const api = {
   updateArrangement: (id, arrangement) =>
     request(`/arrangements/${id}`, { method: "PUT", body: JSON.stringify(arrangement) }),
   deleteArrangement: (id) => request(`/arrangements/${id}`, { method: "DELETE" }),
+
+  askAssistant: (messages) => request("/agent", { method: "POST", body: JSON.stringify({ messages }) }),
 };

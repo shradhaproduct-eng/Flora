@@ -29,6 +29,10 @@ saving the combinations you like. Deploys as a single Vercel project.
 - One-time (or repeatable) **CSV bulk upload** for the flower catalog —
   upload a `name,stem_price` CSV and it upserts by name. See
   `sample-flowers.csv` for the format.
+- An **arrangement assistant** (Claude-powered): describe what you want —
+  style, size, budget, profit target — and it picks flowers from your
+  catalog, checks the numbers, and proposes an arrangement you can open in
+  the builder. It only reads data; nothing is saved until you click Save.
 
 ## Project layout
 
@@ -77,6 +81,19 @@ docker run --name flora-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=flora -p
 ```
 That matches the default `DATABASE_URL` in `server/.env.example`.
 
+## Arrangement assistant
+
+The **Assistant** tab talks to `POST /api/agent`, which runs a Claude
+tool-use loop (`server/src/agent.js`) over read-only tools: list the
+catalog, read the global defaults, list saved arrangements, price a
+candidate mix, and propose a final arrangement. Proposals come back as
+cards that open in the builder as a new, unsaved arrangement.
+
+It needs an Anthropic API key in `ANTHROPIC_API_KEY` (in `server/.env`
+locally, or the Vercel project's Environment Variables). Without one, the
+rest of the app works normally and the assistant explains that it isn't
+set up. Each message makes a few model calls, billed to that key.
+
 ## Deploying to Vercel
 
 1. Push this repo to GitHub (already done) and import it into Vercel as a
@@ -111,3 +128,4 @@ clicking Deploy) is enough once the Postgres storage is connected.
 | POST   | `/api/arrangements`          | Save a new arrangement                     |
 | PUT    | `/api/arrangements/:id`      | Update a saved arrangement                 |
 | DELETE | `/api/arrangements/:id`      | Delete a saved arrangement                 |
+| POST   | `/api/agent`                 | Send a message to the arrangement assistant |

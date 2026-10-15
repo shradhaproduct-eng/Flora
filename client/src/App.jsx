@@ -3,9 +3,11 @@ import { api } from "./api.js";
 import ArrangementBuilder from "./components/ArrangementBuilder.jsx";
 import SavedArrangements from "./components/SavedArrangements.jsx";
 import FlowerCatalog from "./components/FlowerCatalog.jsx";
+import ArrangementAssistant from "./components/ArrangementAssistant.jsx";
 
 const TABS = [
   { id: "builder", label: "Build Arrangement" },
+  { id: "assistant", label: "Assistant" },
   { id: "saved", label: "Saved Arrangements" },
   { id: "catalog", label: "Flower Catalog & Settings" },
 ];
@@ -18,6 +20,7 @@ export default function App() {
   const [editingArrangement, setEditingArrangement] = useState(null);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [assistantConversation, setAssistantConversation] = useState({ history: [], transcript: [] });
 
   const notify = useCallback((message, kind = "success") => {
     setToast({ message, kind });
@@ -61,6 +64,18 @@ export default function App() {
     } catch (err) {
       notify(err.message, "error");
     }
+  }
+
+  // A proposal has no id, so the builder opens it as a new, unsaved
+  // arrangement the user can tweak before saving.
+  function handleOpenProposal(proposal) {
+    setEditingArrangement({
+      name: proposal.name,
+      items: proposal.items,
+      materials_cost: proposal.materials_cost,
+      markup_multiplier: proposal.markup_multiplier,
+    });
+    setTab("builder");
   }
 
   async function handleSaved() {
@@ -107,6 +122,15 @@ export default function App() {
             editingArrangement={editingArrangement}
             onSaved={handleSaved}
             onStartNew={() => setEditingArrangement(null)}
+            notify={notify}
+          />
+        )}
+        {tab === "assistant" && (
+          <ArrangementAssistant
+            api={api}
+            conversation={assistantConversation}
+            setConversation={setAssistantConversation}
+            onOpenProposal={handleOpenProposal}
             notify={notify}
           />
         )}
