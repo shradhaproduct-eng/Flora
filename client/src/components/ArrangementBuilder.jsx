@@ -207,7 +207,7 @@ export default function ArrangementBuilder({
           <span>Materials &amp; extras cost</span>
           <div className="input-with-action">
             <div className="prefixed-input">
-              <span>$</span>
+              <span>AED</span>
               <input
                 type="number"
                 min="0"

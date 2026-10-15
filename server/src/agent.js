@@ -17,6 +17,7 @@ How pricing works in Flora:
 - total cost = stems cost + materials & extras cost
 - selling price = total cost × markup multiplier
 - profit = selling price − total cost
+All prices are in UAE dirhams (AED); always quote amounts in AED. A few catalog items are priced per bunch rather than per stem — their names say so.
 
 Work from real data: check the flower catalog and the global defaults before proposing anything, and only use flowers that are in the catalog. Use price_arrangement to check the numbers of a candidate mix rather than doing the arithmetic yourself, and adjust stems or swap flowers until the request's constraints are met. Use the global default materials cost and markup multiplier unless the user asks otherwise or a target can't be met without changing them — say so if you change them.
 
@@ -41,7 +42,7 @@ const pricingProperties = {
   materials_cost: {
     type: "number",
     minimum: 0,
-    description: "Materials & extras cost in dollars. Omit to use the global default.",
+    description: "Materials & extras cost in AED. Omit to use the global default.",
   },
   markup_multiplier: {
     type: "number",
@@ -53,13 +54,13 @@ const pricingProperties = {
 export const TOOLS = [
   {
     name: "list_flowers",
-    description: "List every flower in the catalog with its price per stem in dollars.",
+    description: "List every flower in the catalog with its price per stem in AED.",
     input_schema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "get_settings",
     description:
-      "Get the global defaults every new arrangement starts from: materials & extras cost (dollars) and markup multiplier.",
+      "Get the global defaults every new arrangement starts from: materials & extras cost (AED) and markup multiplier.",
     input_schema: { type: "object", properties: {}, additionalProperties: false },
   },
   {

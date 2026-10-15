@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { formatCurrency } from "../utils.js";
 
 const EXAMPLES = [
-  "A pink and white bridal bouquet, around 25 stems, selling for about $90",
-  "Cheapest bouquet I can sell for $50 with at least $30 profit",
+  "A pink and white bridal bouquet, around 25 stems, selling for about 250 AED",
+  "Cheapest bouquet I can sell for 150 AED with at least 80 AED profit",
   "A cheaper version of my most recent saved arrangement",
 ];
 
@@ -113,7 +113,7 @@ export default function ArrangementAssistant({ api, conversation, setConversatio
         <textarea
           rows={2}
           value={input}
-          placeholder="e.g. A rustic sunflower centerpiece under $40 cost"
+          placeholder="e.g. A rustic centerpiece costing under 100 AED"
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={pending}

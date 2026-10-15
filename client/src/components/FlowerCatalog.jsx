@@ -103,7 +103,7 @@ export default function FlowerCatalog({ flowers, settings, api, refreshFlowers, 
           <label className="field">
             <span>Default materials &amp; extras cost</span>
             <div className="prefixed-input">
-              <span>$</span>
+              <span>AED</span>
               <input
                 type="number"
                 min="0"
@@ -161,7 +161,7 @@ export default function FlowerCatalog({ flowers, settings, api, refreshFlowers, 
             onChange={(e) => setNewFlower((f) => ({ ...f, name: e.target.value }))}
           />
           <div className="prefixed-input">
-            <span>$</span>
+            <span>AED</span>
             <input
               type="number"
               min="0"
@@ -204,7 +204,7 @@ export default function FlowerCatalog({ flowers, settings, api, refreshFlowers, 
                     </td>
                     <td>
                       <div className="prefixed-input">
-                        <span>$</span>
+                        <span>AED</span>
                         <input
                           type="number"
                           min="0"
