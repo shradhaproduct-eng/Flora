@@ -94,6 +94,16 @@ docker run --name flora-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=flora -p
 ```
 That matches the default `DATABASE_URL` in `server/.env.example`.
 
+## Branding (white-label)
+
+The app is the **Flora** platform, branded per shop. The shop's name, logo
+mark and tagline live in two small files — `client/src/brand.js` (UI) and
+`server/src/brand.js` (AI prompts, Excel export) — and every screen, the
+browser title and the Excel workbook read from them. A "Powered by Flora"
+credit appears on the login screen, in the app footer, and in the Excel
+export. To brand a deployment for another shop, edit those two files (plus
+the palette tokens at the top of `client/src/index.css`).
+
 ## Login
 
 Every page and API route requires signing in. A brand-new database is

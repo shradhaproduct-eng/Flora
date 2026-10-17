@@ -593,8 +593,11 @@ code {
 
 .login-shell {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 24px 16px;
 }
 
@@ -888,4 +891,25 @@ a.btn-secondary {
     right: 16px;
     text-align: center;
   }
+}
+
+/* Platform credit */
+
+.app-footer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.powered-by {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.powered-by-name {
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.01em;
 }

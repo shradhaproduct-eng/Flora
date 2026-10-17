@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { pool } from "./db.js";
+import { BRAND, PLATFORM } from "./brand.js";
 
 // Builds the inventory workbook from the live tables: a Stock sheet (one
 // row per item, with status and value) and a Movements sheet (the change
@@ -32,11 +33,12 @@ export async function buildInventoryWorkbook(categories) {
   ]);
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Buttercup Blooms";
+  workbook.creator = `${BRAND.name} · Powered by ${PLATFORM.name}`;
   workbook.created = new Date();
 
   // --- Stock ---
   const stock = workbook.addWorksheet("Stock", { views: [{ state: "frozen", ySplit: 3 }] });
+  stock.headerFooter.oddFooter = `&LPowered by ${PLATFORM.name}&RPage &P of &N`;
   stock.columns = [
     { key: "name", width: 34 },
     { key: "category", width: 16 },
@@ -51,9 +53,9 @@ export async function buildInventoryWorkbook(categories) {
     { key: "updated_at", width: 18, style: { numFmt: DATE_FORMAT } },
   ];
 
-  stock.getCell("A1").value = "Buttercup Blooms — Stationery inventory";
+  stock.getCell("A1").value = `${BRAND.name} — Stationery inventory`;
   stock.getCell("A1").font = { bold: true, size: 14 };
-  stock.getCell("A2").value = `As of ${toUaeTime(new Date()).toISOString().slice(0, 16).replace("T", " ")} (UAE time)`;
+  stock.getCell("A2").value = `As of ${toUaeTime(new Date()).toISOString().slice(0, 16).replace("T", " ")} (UAE time) · Powered by ${PLATFORM.name}`;
   stock.getCell("A2").font = { italic: true, color: { argb: "FF7A6A55" } };
 
   const header = stock.getRow(3);

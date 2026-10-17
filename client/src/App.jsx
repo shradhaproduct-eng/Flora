@@ -7,6 +7,8 @@ import ArrangementAssistant from "./components/ArrangementAssistant.jsx";
 import Inventory from "./components/Inventory.jsx";
 import Login from "./components/Login.jsx";
 import AccountSettings from "./components/AccountSettings.jsx";
+import PoweredBy from "./components/PoweredBy.jsx";
+import { BRAND } from "./brand.js";
 
 const TABS = [
   { id: "builder", label: "Build Arrangement" },
@@ -31,7 +33,7 @@ export default function App() {
   if (user === undefined) {
     return (
       <div className="app-shell">
-        <p className="muted">Loading Buttercup Blooms…</p>
+        <p className="muted">Loading {BRAND.name}…</p>
       </div>
     );
   }
@@ -118,7 +120,7 @@ function MainApp({ user, setUser }) {
   if (loading) {
     return (
       <div className="app-shell">
-        <p className="muted">Loading Buttercup Blooms…</p>
+        <p className="muted">Loading {BRAND.name}…</p>
       </div>
     );
   }
@@ -128,11 +130,11 @@ function MainApp({ user, setUser }) {
       <header className="app-header">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            🌼
+            {BRAND.mark}
           </span>
           <div>
-            <h1>Buttercup Blooms</h1>
-            <p className="muted">Arrangement costing, design &amp; stationery inventory</p>
+            <h1>{BRAND.name}</h1>
+            <p className="muted">{BRAND.tagline}</p>
           </div>
         </div>
         <div className="account">
@@ -195,6 +197,10 @@ function MainApp({ user, setUser }) {
           </>
         )}
       </main>
+
+      <footer className="app-footer">
+        <PoweredBy />
+      </footer>
     </div>
   );
 }

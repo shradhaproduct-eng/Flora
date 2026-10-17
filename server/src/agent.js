@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { pool } from "./db.js";
 import { readSettings } from "./routes/settings.js";
+import { BRAND } from "./brand.js";
 
 // The arrangement assistant: a Claude tool-use loop over read-only views of
 // the catalog, settings and saved arrangements. It never writes to the
@@ -10,7 +11,7 @@ import { readSettings } from "./routes/settings.js";
 const MODEL = "claude-opus-5-5";
 const MAX_TOOL_ROUNDS = 12;
 
-const SYSTEM_PROMPT = `You are the arrangement assistant for Buttercup Blooms, helping the florist design flower arrangements that hit their price and profit targets.
+const SYSTEM_PROMPT = `You are the arrangement assistant for ${BRAND.name}, helping the florist design flower arrangements that hit their price and profit targets.
 
 How pricing works in the app:
 - stems cost = sum of (stem price × stems) for each flower

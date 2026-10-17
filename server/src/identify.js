@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { BRAND } from "./brand.js";
 
 // Identifies a stationery item from a photo: either matches it to an
 // existing inventory item or suggests the fields for a new one. Uses
@@ -69,7 +70,7 @@ export async function identifyItem(imageDataUrl, inventory, categories, { client
     fallbacks: "default",
     output_config: { effort: "low", format: { type: "json_schema", schema: resultSchema(Object.keys(categories)) } },
     system:
-      "You identify florist stationery and packaging from photos for Buttercup Blooms' inventory: wrapping paper, " +
+      `You identify florist stationery and packaging from photos for ${BRAND.name}'s inventory: wrapping paper, ` +
       "ribbons, bloom bags, greeting cards and tags. Match the photo against the existing inventory when it is " +
       "clearly the same product (same type and colour); otherwise leave matched_item_id null and suggest a new item. " +
       "Prefer the naming style already used in the inventory.",

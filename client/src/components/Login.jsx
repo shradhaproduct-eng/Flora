@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { BRAND } from "../brand.js";
+import PoweredBy from "./PoweredBy.jsx";
 
 export default function Login({ api, onLoggedIn }) {
   const [username, setUsername] = useState("");
@@ -24,9 +26,9 @@ export default function Login({ api, onLoggedIn }) {
       <form className="card login-card" onSubmit={handleSubmit}>
         <div className="brand brand-center">
           <span className="brand-mark" aria-hidden="true">
-            🌼
+            {BRAND.mark}
           </span>
-          <h1>Buttercup Blooms</h1>
+          <h1>{BRAND.name}</h1>
         </div>
         <p className="muted login-subtitle">Sign in to continue</p>
 
@@ -60,6 +62,7 @@ export default function Login({ api, onLoggedIn }) {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      <PoweredBy />
     </div>
   );
 }
