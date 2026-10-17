@@ -1,7 +1,9 @@
-# 🌸 Flora — Flower Cost Calculator
+# 🌼 Buttercup Blooms
 
-A full-stack app for building flower arrangements, costing them out, and
-saving the combinations you like. Deploys as a single Vercel project.
+Buttercup Blooms' studio app: build flower arrangements and cost them out,
+design them with an AI assistant, and keep track of stationery stock.
+Deploys as a single Vercel project. (The repository keeps its original
+"Flora" name.)
 
 - **Backend:** Express app, run as a Vercel serverless function in
   production (`api/[...path].js` → `server/src/app.js`) or as a normal
@@ -29,6 +31,28 @@ saving the combinations you like. Deploys as a single Vercel project.
 - One-time (or repeatable) **CSV bulk upload** for the flower catalog —
   upload a `name,stem_price` CSV and it upserts by name. See
   `sample-flowers.csv` for the format.
+- An **arrangement assistant** (Claude-powered): describe what you want —
+  style, size, budget, profit target — and it picks flowers from your
+  catalog, checks the numbers, and proposes an arrangement you can open in
+  the builder. It only reads data; nothing is saved until you click Save.
+- **Order management** — the landing tab. Orders with customer, source
+  (walk-in, phone, WhatsApp, Instagram…), delivery or pickup, due date and
+  time, recipient and address, card message, price and payments. Orders
+  move Enquiry → Confirmed → Being made → Ready → Out for delivery →
+  Delivered (pickup orders skip delivery and end as "Collected"), with a
+  one-click next-step button. Views for open, today, tomorrow, enquiries,
+  unpaid, completed and cancelled orders, overdue orders flagged, search,
+  and an always-current Excel download. Link a saved arrangement to see
+  cost and margin; record stationery used and it's taken out of inventory,
+  labelled with the order number (e.g. BB-0042).
+- **Stationery inventory** — wrapping paper, ribbons, bloom bags, greeting
+  cards and tags. Add/use stock with one click, low-stock alerts, and a
+  history of every change. **Identify from photo**: snap an item and the app
+  matches it to existing stock or pre-fills a new item.
+- **Excel copy of inventory** — "Download Excel" builds a workbook (Stock +
+  Movements sheets) from live data on every download, so it's always the
+  latest stock.
+- **Login** — a single username and password protect the whole app.
 
 ## Project layout
 
@@ -79,6 +103,49 @@ both editable from the **Flower Catalog & Settings** tab.
 docker run --name flora-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=flora -p 5432:5432 -d postgres:16
 ```
 That matches the default `DATABASE_URL` in `server/.env.example`.
+
+## Branding (white-label)
+
+The app is the **Flora** platform, branded per shop. The shop's name, logo
+mark and tagline live in two small files — `client/src/brand.js` (UI) and
+`server/src/brand.js` (AI prompts, Excel export, order-number prefix) — and every screen, the
+browser title and the Excel workbook read from them. A "Powered by Flora"
+credit appears on the login screen, in the app footer, and in the Excel
+export. To brand a deployment for another shop, edit those two files (plus
+the palette tokens at the top of `client/src/index.css`).
+
+## Login
+
+Every page and API route requires signing in. A brand-new database is
+seeded with:
+
+- Username: `buttercup admin`
+- Password: `Buttercup123`
+
+**Change the password after your first sign-in** (Flower Catalog &
+Settings → Login) — the default is written in this repository. Changing it
+signs out every other browser. Credentials are stored as a scrypt hash in
+the `settings` table; sessions are signed, HTTP-only cookies that last 30
+days.
+
+Forgot the password? Delete the `admin_username` and `admin_password_hash`
+rows from the `settings` table and redeploy (or restart the server); the
+defaults are re-seeded on startup.
+
+## Arrangement assistant
+
+The **Assistant** tab talks to `POST /api/agent`, which runs a Claude
+tool-use loop (`server/src/agent.js`) over read-only tools: list the
+catalog, read the global defaults, list saved arrangements, price a
+candidate mix, and propose a final arrangement. Proposals come back as
+cards that open in the builder as a new, unsaved arrangement.
+
+It needs an Anthropic API key in `ANTHROPIC_API_KEY` (in `server/.env`
+locally, or the Vercel project's Environment Variables). Without one, the
+rest of the app works normally and the assistant explains that it isn't
+set up. Each message makes a few model calls, billed to that key. The
+same key powers **Identify from photo** in the Inventory tab (one call per
+photo).
 
 ## Deploying to Vercel
 
@@ -140,3 +207,24 @@ refreshing a price sheet just updates prices instead of duplicating rows.
 | POST   | `/api/arrangements`          | Save a new arrangement                     |
 | PUT    | `/api/arrangements/:id`      | Update a saved arrangement                 |
 | DELETE | `/api/arrangements/:id`      | Delete a saved arrangement                 |
+| POST   | `/api/agent`                 | Send a message to the arrangement assistant |
+| POST   | `/api/auth/login`            | Sign in (sets the session cookie)          |
+| POST   | `/api/auth/logout`           | Sign out                                   |
+| GET    | `/api/auth/me`               | Current user                               |
+| PUT    | `/api/auth/credentials`      | Change username/password                   |
+| GET    | `/api/inventory`             | List stationery items and categories       |
+| POST   | `/api/inventory`             | Add an item                                |
+| PUT    | `/api/inventory/:id`         | Edit an item (count changes are logged)    |
+| POST   | `/api/inventory/:id/adjust`  | Add or use stock (`{ change, reason }`)    |
+| DELETE | `/api/inventory/:id`         | Remove an item                             |
+| GET    | `/api/inventory/movements`   | Recent stock changes                       |
+| POST   | `/api/inventory/identify`    | Identify an item from a photo              |
+| GET    | `/api/inventory/export.xlsx` | Download the live inventory workbook       |
+| GET    | `/api/orders`                | List orders (plus status/source labels)    |
+| GET    | `/api/orders/:id`            | One order with stationery used             |
+| POST   | `/api/orders`                | Create an order (assigns e.g. `BB-0042`)   |
+| PUT    | `/api/orders/:id`            | Update an order                            |
+| POST   | `/api/orders/:id/status`     | Move an order to another status            |
+| POST   | `/api/orders/:id/stationery` | Record stationery used (deducts inventory) |
+| DELETE | `/api/orders/:id`            | Delete an order                            |
+| GET    | `/api/orders/export.xlsx`    | Download the live orders workbook          |

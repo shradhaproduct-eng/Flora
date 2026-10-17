@@ -3,21 +3,55 @@ import { api } from "./api.js";
 import ArrangementBuilder from "./components/ArrangementBuilder.jsx";
 import SavedArrangements from "./components/SavedArrangements.jsx";
 import FlowerCatalog from "./components/FlowerCatalog.jsx";
+import ArrangementAssistant from "./components/ArrangementAssistant.jsx";
+import Inventory from "./components/Inventory.jsx";
+import Orders from "./components/Orders.jsx";
+import Login from "./components/Login.jsx";
+import AccountSettings from "./components/AccountSettings.jsx";
+import PoweredBy from "./components/PoweredBy.jsx";
+import { BRAND } from "./brand.js";
 
 const TABS = [
+  { id: "orders", label: "Orders" },
   { id: "builder", label: "Build Arrangement" },
+  { id: "assistant", label: "Assistant" },
   { id: "saved", label: "Saved Arrangements" },
+  { id: "inventory", label: "Inventory" },
   { id: "catalog", label: "Flower Catalog & Settings" },
 ];
 
+// Gate: checks for an existing session, shows the login screen if there
+// isn't one, and drops back to it whenever any request comes back 401.
 export default function App() {
-  const [tab, setTab] = useState("builder");
+  const [user, setUser] = useState(undefined); // undefined = still checking
+
+  useEffect(() => {
+    api.me().then(setUser, () => setUser(null));
+    const onAuthRequired = () => setUser(null);
+    window.addEventListener("auth:required", onAuthRequired);
+    return () => window.removeEventListener("auth:required", onAuthRequired);
+  }, []);
+
+  if (user === undefined) {
+    return (
+      <div className="app-shell">
+        <p className="muted">Loading {BRAND.name}…</p>
+      </div>
+    );
+  }
+  if (!user) return <Login api={api} onLoggedIn={setUser} />;
+  return <MainApp user={user} setUser={setUser} />;
+}
+
+function MainApp({ user, setUser }) {
+  const [tab, setTab] = useState("orders");
   const [flowers, setFlowers] = useState([]);
   const [settings, setSettings] = useState({ default_materials_cost: 0, default_markup_multiplier: 1 });
   const [arrangements, setArrangements] = useState([]);
   const [editingArrangement, setEditingArrangement] = useState(null);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [assistantConversation, setAssistantConversation] = useState({ history: [], transcript: [] });
 
   const notify = useCallback((message, kind = "success") => {
     setToast({ message, kind });
@@ -63,6 +97,23 @@ export default function App() {
     }
   }
 
+  // A proposal has no id, so the builder opens it as a new, unsaved
+  // arrangement the user can tweak before saving.
+  function handleOpenProposal(proposal) {
+    setEditingArrangement({
+      name: proposal.name,
+      items: proposal.items,
+      materials_cost: proposal.materials_cost,
+      markup_multiplier: proposal.markup_multiplier,
+    });
+    setTab("builder");
+  }
+
+  async function handleLogout() {
+    await api.logout().catch(() => {});
+    setUser(null);
+  }
+
   async function handleSaved() {
     await refreshArrangements();
     setEditingArrangement(null);
@@ -71,7 +122,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="app-shell">
-        <p className="muted">Loading Flora…</p>
+        <p className="muted">Loading {BRAND.name}…</p>
       </div>
     );
   }
@@ -79,9 +130,20 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div>
-          <h1>🌸 Flora</h1>
-          <p className="muted">Flower cost calculator &amp; arrangement builder</p>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            {BRAND.mark}
+          </span>
+          <div>
+            <h1>{BRAND.name}</h1>
+            <p className="muted">{BRAND.tagline}</p>
+          </div>
+        </div>
+        <div className="account">
+          <span className="muted">{user.username}</span>
+          <button type="button" className="btn-link" onClick={handleLogout}>
+            Sign out
+          </button>
         </div>
         <nav className="tabs">
           {TABS.map((t) => (
@@ -110,20 +172,38 @@ export default function App() {
             notify={notify}
           />
         )}
-        {tab === "saved" && (
-          <SavedArrangements arrangements={arrangements} onEdit={handleEdit} onDelete={handleDelete} />
-        )}
-        {tab === "catalog" && (
-          <FlowerCatalog
-            flowers={flowers}
-            settings={settings}
+        {tab === "assistant" && (
+          <ArrangementAssistant
             api={api}
-            refreshFlowers={refreshFlowers}
-            refreshSettings={refreshSettings}
+            conversation={assistantConversation}
+            setConversation={setAssistantConversation}
+            onOpenProposal={handleOpenProposal}
             notify={notify}
           />
         )}
+        {tab === "saved" && (
+          <SavedArrangements arrangements={arrangements} onEdit={handleEdit} onDelete={handleDelete} />
+        )}
+        {tab === "orders" && <Orders api={api} notify={notify} arrangements={arrangements} />}
+        {tab === "inventory" && <Inventory api={api} notify={notify} />}
+        {tab === "catalog" && (
+          <>
+            <FlowerCatalog
+              flowers={flowers}
+              settings={settings}
+              api={api}
+              refreshFlowers={refreshFlowers}
+              refreshSettings={refreshSettings}
+              notify={notify}
+            />
+            <AccountSettings api={api} user={user} onUpdated={setUser} notify={notify} />
+          </>
+        )}
       </main>
+
+      <footer className="app-footer">
+        <PoweredBy />
+      </footer>
     </div>
   );
 }

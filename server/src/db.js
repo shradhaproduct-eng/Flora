@@ -1,6 +1,13 @@
+import crypto from "node:crypto";
 import pg from "pg";
+import { DEFAULT_PASSWORD, DEFAULT_USERNAME, hashPassword } from "./auth.js";
 
 const { Pool } = pg;
+
+// Return DATE columns (order due dates) as plain "YYYY-MM-DD" strings. By
+// default pg turns them into a Date at local midnight, which shifts the
+// day when serialised to JSON in a server running on UTC.
+pg.types.setTypeParser(1082, (value) => value);
 
 // Lazily constructed on first use rather than at module import time. A
 // serverless function that throws synchronously while its module is still
@@ -97,7 +104,73 @@ async function runMigration() {
       stems INTEGER NOT NULL CHECK (stems >= 0),
       line_total DOUBLE PRECISION NOT NULL
     );
+
+    -- Stationery stock: wrapping paper, ribbons, bloom bags, cards, tags.
+    -- image holds a small JPEG thumbnail as a data URL.
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      category TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '',
+      unit TEXT NOT NULL DEFAULT 'pcs',
+      quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+      reorder_level INTEGER NOT NULL DEFAULT 0 CHECK (reorder_level >= 0),
+      unit_cost DOUBLE PRECISION CHECK (unit_cost >= 0),
+      notes TEXT NOT NULL DEFAULT '',
+      image TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Every stock change, kept for the audit trail in the Excel export.
+    -- item_name is copied so history survives deleting an item.
+    CREATE TABLE IF NOT EXISTS inventory_movements (
+      id SERIAL PRIMARY KEY,
+      item_id INTEGER REFERENCES inventory_items(id) ON DELETE SET NULL,
+      item_name TEXT NOT NULL,
+      change INTEGER NOT NULL,
+      quantity_after INTEGER NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS orders (
+      id SERIAL PRIMARY KEY,
+      order_number TEXT UNIQUE,
+      customer_name TEXT NOT NULL,
+      customer_phone TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'walk_in',
+      status TEXT NOT NULL DEFAULT 'enquiry',
+      fulfilment TEXT NOT NULL DEFAULT 'delivery',
+      due_date DATE NOT NULL,
+      due_time TEXT NOT NULL DEFAULT '',
+      recipient_name TEXT NOT NULL DEFAULT '',
+      recipient_phone TEXT NOT NULL DEFAULT '',
+      delivery_address TEXT NOT NULL DEFAULT '',
+      card_message TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      price DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (price >= 0),
+      amount_paid DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (amount_paid >= 0),
+      arrangement_id INTEGER REFERENCES arrangements(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS orders_due_idx ON orders (due_date, due_time);
+
+    -- Stationery used on an order is logged against it.
+    ALTER TABLE inventory_movements
+      ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL;
   `);
+
+  // Single-user login: seeded once with the default credentials (changeable
+  // from Settings) and a random secret for signing session cookies.
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES
+       ('admin_username', $1), ('admin_password_hash', $2), ('session_secret', $3)
+     ON CONFLICT (key) DO NOTHING`,
+    [DEFAULT_USERNAME, await hashPassword(DEFAULT_PASSWORD), crypto.randomBytes(32).toString("hex")]
+  );
 
   await pool.query(
     `INSERT INTO settings (key, value) VALUES ('default_materials_cost', '5.00')

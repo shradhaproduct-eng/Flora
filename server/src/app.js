@@ -4,6 +4,10 @@ import { ensureSchema } from "./db.js";
 import flowersRouter from "./routes/flowers.js";
 import settingsRouter from "./routes/settings.js";
 import arrangementsRouter from "./routes/arrangements.js";
+import agentRouter from "./routes/agent.js";
+import inventoryRouter from "./routes/inventory.js";
+import ordersRouter from "./routes/orders.js";
+import { authRouter, requireAuth } from "./auth.js";
 
 // Builds the Express app without starting a listener, so it can be reused
 // both by the local dev server (server/src/index.js, via app.listen) and
@@ -12,7 +16,8 @@ import arrangementsRouter from "./routes/arrangements.js";
 export function createApp() {
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  // Large enough for a downscaled photo sent for identification.
+  app.use(express.json({ limit: "4mb" }));
 
   // Cheap no-op after the first request on a given (local or warm
   // serverless) process; runs the CREATE TABLE / seed migration on demand
@@ -22,10 +27,16 @@ export function createApp() {
     ensureSchema().then(() => next(), next);
   });
 
+  app.use("/api", requireAuth);
+
   app.get("/api/health", (req, res) => res.json({ ok: true }));
+  app.use("/api/auth", authRouter);
   app.use("/api/flowers", flowersRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api/arrangements", arrangementsRouter);
+  app.use("/api/agent", agentRouter);
+  app.use("/api/inventory", inventoryRouter);
+  app.use("/api/orders", ordersRouter);
 
   // Generic error handler so unexpected exceptions return JSON, not HTML.
   app.use((err, req, res, next) => {

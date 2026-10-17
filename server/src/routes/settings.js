@@ -3,7 +3,7 @@ import { pool } from "../db.js";
 
 const router = Router();
 
-async function readSettings() {
+export async function readSettings() {
   const { rows } = await pool.query("SELECT key, value FROM settings");
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
