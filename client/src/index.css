@@ -913,3 +913,293 @@ a.btn-secondary {
   color: var(--text);
   letter-spacing: 0.01em;
 }
+
+/* Orders */
+
+input[type="tel"],
+input[type="date"],
+input[type="time"],
+input[type="search"],
+textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.95rem;
+  background: white;
+  color: var(--text);
+}
+
+textarea {
+  resize: vertical;
+}
+
+input[type="tel"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="search"]:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.search-input {
+  margin-top: 4px;
+}
+
+fieldset {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0 0;
+  padding: 12px 0 0;
+}
+
+legend {
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-ink);
+  padding-right: 8px;
+}
+
+fieldset .field {
+  margin: 8px 0;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.inline-field > span {
+  margin: 0;
+}
+
+.inline-field select {
+  width: auto;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented button {
+  flex: 1;
+  border: none;
+  background: white;
+  padding: 9px 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--border);
+}
+
+.segmented button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.balance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  font-weight: 600;
+}
+
+.card-actions.spread {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stationery-used {
+  margin: 4px 0 10px;
+  padding-left: 18px;
+  font-size: 0.92rem;
+}
+
+.stationery-add select {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-group + .order-group {
+  margin-top: 18px;
+}
+
+.order-group-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 4px;
+  color: var(--accent-ink);
+}
+
+.order-group-title.overdue {
+  color: var(--red);
+}
+
+.order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.order-row.status-cancelled .order-main {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.order-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.order-main:hover strong {
+  text-decoration: underline;
+}
+
+.order-when {
+  display: flex;
+  flex-direction: column;
+  min-width: 72px;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.order-when.late {
+  color: var(--red);
+}
+
+.order-when .muted {
+  font-weight: 400;
+  font-size: 0.78rem;
+}
+
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.order-desc {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-side {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.order-price {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.btn-small {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.status-badge {
+  background: #eee6d6;
+  color: #5c4f3a;
+}
+
+.status-badge-enquiry {
+  background: #e8eefc;
+  color: #2f4f9a;
+}
+
+.status-badge-confirmed {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.status-badge-in_progress {
+  background: #f3e6fb;
+  color: #6b3a8a;
+}
+
+.status-badge-ready,
+.status-badge-out_for_delivery {
+  background: #fff1cc;
+  color: #7a5200;
+}
+
+.status-badge-delivered {
+  background: #e3f3ea;
+  color: #1f6b43;
+}
+
+.status-badge-cancelled {
+  background: #f0ece6;
+  color: #7a6f60;
+}
+
+@media (max-width: 620px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .order-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding-bottom: 10px;
+  }
+
+  .order-main {
+    padding-bottom: 6px;
+  }
+
+  .order-side {
+    justify-content: flex-start;
+  }
+
+  .order-side .btn-small {
+    margin-left: auto;
+  }
+}

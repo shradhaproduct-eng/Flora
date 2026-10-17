@@ -6,6 +6,7 @@ import settingsRouter from "./routes/settings.js";
 import arrangementsRouter from "./routes/arrangements.js";
 import agentRouter from "./routes/agent.js";
 import inventoryRouter from "./routes/inventory.js";
+import ordersRouter from "./routes/orders.js";
 import { authRouter, requireAuth } from "./auth.js";
 
 // Builds the Express app without starting a listener, so it can be reused
@@ -35,6 +36,7 @@ export function createApp() {
   app.use("/api/arrangements", arrangementsRouter);
   app.use("/api/agent", agentRouter);
   app.use("/api/inventory", inventoryRouter);
+  app.use("/api/orders", ordersRouter);
 
   // Generic error handler so unexpected exceptions return JSON, not HTML.
   app.use((err, req, res, next) => {

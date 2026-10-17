@@ -5,12 +5,14 @@ import SavedArrangements from "./components/SavedArrangements.jsx";
 import FlowerCatalog from "./components/FlowerCatalog.jsx";
 import ArrangementAssistant from "./components/ArrangementAssistant.jsx";
 import Inventory from "./components/Inventory.jsx";
+import Orders from "./components/Orders.jsx";
 import Login from "./components/Login.jsx";
 import AccountSettings from "./components/AccountSettings.jsx";
 import PoweredBy from "./components/PoweredBy.jsx";
 import { BRAND } from "./brand.js";
 
 const TABS = [
+  { id: "orders", label: "Orders" },
   { id: "builder", label: "Build Arrangement" },
   { id: "assistant", label: "Assistant" },
   { id: "saved", label: "Saved Arrangements" },
@@ -42,7 +44,7 @@ export default function App() {
 }
 
 function MainApp({ user, setUser }) {
-  const [tab, setTab] = useState("builder");
+  const [tab, setTab] = useState("orders");
   const [flowers, setFlowers] = useState([]);
   const [settings, setSettings] = useState({ default_materials_cost: 0, default_markup_multiplier: 1 });
   const [arrangements, setArrangements] = useState([]);
@@ -182,6 +184,7 @@ function MainApp({ user, setUser }) {
         {tab === "saved" && (
           <SavedArrangements arrangements={arrangements} onEdit={handleEdit} onDelete={handleDelete} />
         )}
+        {tab === "orders" && <Orders api={api} notify={notify} arrangements={arrangements} />}
         {tab === "inventory" && <Inventory api={api} notify={notify} />}
         {tab === "catalog" && (
           <>

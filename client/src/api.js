@@ -58,4 +58,15 @@ export const api = {
   identifyInventoryPhoto: (image) =>
     request("/inventory/identify", { method: "POST", body: JSON.stringify({ image }) }),
   inventoryExportUrl: "/api/inventory/export.xlsx",
+
+  getOrders: () => request("/orders"),
+  getOrder: (id) => request(`/orders/${id}`),
+  createOrder: (order) => request("/orders", { method: "POST", body: JSON.stringify(order) }),
+  updateOrder: (id, order) => request(`/orders/${id}`, { method: "PUT", body: JSON.stringify(order) }),
+  setOrderStatus: (id, status) =>
+    request(`/orders/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }),
+  useStationeryOnOrder: (id, item_id, quantity) =>
+    request(`/orders/${id}/stationery`, { method: "POST", body: JSON.stringify({ item_id, quantity }) }),
+  deleteOrder: (id) => request(`/orders/${id}`, { method: "DELETE" }),
+  ordersExportUrl: "/api/orders/export.xlsx",
 };

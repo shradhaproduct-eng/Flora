@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { pool } from "../db.js";
 import { IdentifyError, identifyItem, parseImageDataUrl } from "../identify.js";
 import { buildInventoryWorkbook } from "../inventoryExcel.js";
+import { StockError, adjustStock, inTransaction, logMovement } from "../stock.js";
 
 export const CATEGORIES = {
   wrapping_paper: "Wrapping paper",
@@ -62,30 +63,6 @@ function validateItem(body) {
       image,
     },
   };
-}
-
-async function logMovement(client, item, change, reason) {
-  await client.query(
-    `INSERT INTO inventory_movements (item_id, item_name, change, quantity_after, reason)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [item.id, item.name, change, item.quantity, reason]
-  );
-}
-
-// Runs fn inside a transaction on a dedicated client.
-async function inTransaction(fn) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const result = await fn(client);
-    await client.query("COMMIT");
-    return result;
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
-  } finally {
-    client.release();
-  }
 }
 
 router.get("/", async (req, res, next) => {
@@ -197,8 +174,7 @@ router.put("/:id", async (req, res, next) => {
   }
 });
 
-// Adds or removes stock (e.g. +20 delivered, -3 used). Refuses to go
-// below zero rather than silently clamping.
+// Adds or removes stock (e.g. +20 delivered, -3 used).
 router.post("/:id/adjust", async (req, res, next) => {
   const id = Number(req.params.id);
   const change = Number(req.body?.change);
@@ -207,23 +183,12 @@ router.post("/:id/adjust", async (req, res, next) => {
     return res.status(400).json({ error: "Change must be a whole number other than 0." });
   }
   try {
-    const result = await inTransaction(async (client) => {
-      const { rows } = await client.query(
-        `UPDATE inventory_items SET quantity = quantity + $1, updated_at = now()
-         WHERE id = $2 AND quantity + $1 >= 0 RETURNING *`,
-        [change, id]
-      );
-      if (rows.length === 0) return null;
-      await logMovement(client, rows[0], change, reason || (change > 0 ? "Stock added" : "Stock used"));
-      return rows[0];
-    });
-    if (!result) {
-      const { rows } = await pool.query("SELECT quantity FROM inventory_items WHERE id = $1", [id]);
-      if (rows.length === 0) return res.status(404).json({ error: "Item not found." });
-      return res.status(400).json({ error: `Only ${rows[0].quantity} in stock — can't remove ${-change}.` });
-    }
-    res.json(result);
+    const item = await inTransaction((client) =>
+      adjustStock(client, id, change, reason || (change > 0 ? "Stock added" : "Stock used"))
+    );
+    res.json(item);
   } catch (err) {
+    if (err instanceof StockError) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 });

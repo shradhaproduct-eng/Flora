@@ -35,6 +35,16 @@ Deploys as a single Vercel project. (The repository keeps its original
   style, size, budget, profit target — and it picks flowers from your
   catalog, checks the numbers, and proposes an arrangement you can open in
   the builder. It only reads data; nothing is saved until you click Save.
+- **Order management** — the landing tab. Orders with customer, source
+  (walk-in, phone, WhatsApp, Instagram…), delivery or pickup, due date and
+  time, recipient and address, card message, price and payments. Orders
+  move Enquiry → Confirmed → Being made → Ready → Out for delivery →
+  Delivered (pickup orders skip delivery and end as "Collected"), with a
+  one-click next-step button. Views for open, today, tomorrow, enquiries,
+  unpaid, completed and cancelled orders, overdue orders flagged, search,
+  and an always-current Excel download. Link a saved arrangement to see
+  cost and margin; record stationery used and it's taken out of inventory,
+  labelled with the order number (e.g. BB-0042).
 - **Stationery inventory** — wrapping paper, ribbons, bloom bags, greeting
   cards and tags. Add/use stock with one click, low-stock alerts, and a
   history of every change. **Identify from photo**: snap an item and the app
@@ -98,7 +108,7 @@ That matches the default `DATABASE_URL` in `server/.env.example`.
 
 The app is the **Flora** platform, branded per shop. The shop's name, logo
 mark and tagline live in two small files — `client/src/brand.js` (UI) and
-`server/src/brand.js` (AI prompts, Excel export) — and every screen, the
+`server/src/brand.js` (AI prompts, Excel export, order-number prefix) — and every screen, the
 browser title and the Excel workbook read from them. A "Powered by Flora"
 credit appears on the login screen, in the app footer, and in the Excel
 export. To brand a deployment for another shop, edit those two files (plus
@@ -210,3 +220,11 @@ refreshing a price sheet just updates prices instead of duplicating rows.
 | GET    | `/api/inventory/movements`   | Recent stock changes                       |
 | POST   | `/api/inventory/identify`    | Identify an item from a photo              |
 | GET    | `/api/inventory/export.xlsx` | Download the live inventory workbook       |
+| GET    | `/api/orders`                | List orders (plus status/source labels)    |
+| GET    | `/api/orders/:id`            | One order with stationery used             |
+| POST   | `/api/orders`                | Create an order (assigns e.g. `BB-0042`)   |
+| PUT    | `/api/orders/:id`            | Update an order                            |
+| POST   | `/api/orders/:id/status`     | Move an order to another status            |
+| POST   | `/api/orders/:id/stationery` | Record stationery used (deducts inventory) |
+| DELETE | `/api/orders/:id`            | Delete an order                            |
+| GET    | `/api/orders/export.xlsx`    | Download the live orders workbook          |
