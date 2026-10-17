@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import pg from "pg";
+import { DEFAULT_PASSWORD, DEFAULT_USERNAME, hashPassword } from "./auth.js";
 
 const { Pool } = pg;
 
@@ -97,7 +99,45 @@ async function runMigration() {
       stems INTEGER NOT NULL CHECK (stems >= 0),
       line_total DOUBLE PRECISION NOT NULL
     );
+
+    -- Stationery stock: wrapping paper, ribbons, bloom bags, cards, tags.
+    -- image holds a small JPEG thumbnail as a data URL.
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      category TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '',
+      unit TEXT NOT NULL DEFAULT 'pcs',
+      quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+      reorder_level INTEGER NOT NULL DEFAULT 0 CHECK (reorder_level >= 0),
+      unit_cost DOUBLE PRECISION CHECK (unit_cost >= 0),
+      notes TEXT NOT NULL DEFAULT '',
+      image TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Every stock change, kept for the audit trail in the Excel export.
+    -- item_name is copied so history survives deleting an item.
+    CREATE TABLE IF NOT EXISTS inventory_movements (
+      id SERIAL PRIMARY KEY,
+      item_id INTEGER REFERENCES inventory_items(id) ON DELETE SET NULL,
+      item_name TEXT NOT NULL,
+      change INTEGER NOT NULL,
+      quantity_after INTEGER NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
   `);
+
+  // Single-user login: seeded once with the default credentials (changeable
+  // from Settings) and a random secret for signing session cookies.
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES
+       ('admin_username', $1), ('admin_password_hash', $2), ('session_secret', $3)
+     ON CONFLICT (key) DO NOTHING`,
+    [DEFAULT_USERNAME, await hashPassword(DEFAULT_PASSWORD), crypto.randomBytes(32).toString("hex")]
+  );
 
   await pool.query(
     `INSERT INTO settings (key, value) VALUES ('default_materials_cost', '5.00')

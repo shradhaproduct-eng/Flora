@@ -1,11 +1,17 @@
 :root {
-  --bg: #fdf7f5;
+  /* Buttercup Blooms palette. Buttercup yellow is a fill colour: text on it
+     uses --on-accent (dark), and yellow-ish text on white uses --accent-ink,
+     which keeps WCAG AA contrast. */
+  --bg: #fffaf0;
   --card-bg: #ffffff;
-  --text: #2c2420;
-  --muted: #8a7a72;
-  --border: #ece1dc;
-  --pink: #c2477a;
-  --pink-dark: #a13563;
+  --text: #2b2418;
+  --muted: #7a6a55;
+  --border: #efe3c8;
+  --accent: #f4c430;
+  --accent-dark: #e2ad12;
+  --accent-ink: #855a00;
+  --on-accent: #2b2418;
+  --accent-soft: #fdf3d3;
   --green: #2f8f5b;
   --red: #c94f4f;
   color-scheme: light;
@@ -67,8 +73,8 @@ body {
 }
 
 .tab.active {
-  background: var(--pink);
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .stack {
@@ -131,7 +137,7 @@ select {
 
 input:focus,
 select:focus {
-  outline: 2px solid var(--pink);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -219,15 +225,15 @@ select:focus {
 }
 
 .btn-primary {
-  background: var(--pink);
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
   border: none;
   padding: 10px 20px;
   font-weight: 600;
 }
 
 .btn-primary:hover {
-  background: var(--pink-dark);
+  background: var(--accent-dark);
 }
 
 .btn-primary:disabled {
@@ -243,7 +249,7 @@ select:focus {
 }
 
 .btn-secondary:hover {
-  border-color: var(--pink);
+  border-color: var(--accent);
 }
 
 .file-btn {
@@ -254,7 +260,7 @@ select:focus {
 .btn-link {
   background: none;
   border: none;
-  color: var(--pink-dark);
+  color: var(--accent-ink);
   padding: 4px 0;
   font-weight: 600;
 }
@@ -283,7 +289,7 @@ select:focus {
 }
 
 .summary {
-  background: #fbf1ee;
+  background: var(--accent-soft);
   border-radius: 10px;
   padding: 14px 16px;
   margin: 16px 0;
@@ -304,7 +310,7 @@ select:focus {
 }
 
 .summary-row.highlight {
-  color: var(--pink-dark);
+  color: var(--accent-ink);
   font-weight: 700;
   font-size: 1.05rem;
 }
@@ -356,8 +362,9 @@ td {
 
 .toast {
   position: fixed;
-  top: 16px;
+  bottom: 16px;
   right: 16px;
+  max-width: calc(100vw - 32px);
   padding: 12px 18px;
   border-radius: 10px;
   color: white;
@@ -375,7 +382,7 @@ td {
 }
 
 code {
-  background: #f3e9e5;
+  background: #f6efe0;
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 0.85em;
@@ -405,8 +412,8 @@ code {
 }
 
 .example-prompt:hover {
-  border-color: var(--pink);
-  color: var(--pink-dark);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .chat-log {
@@ -443,12 +450,12 @@ code {
 }
 
 .chat-user .chat-bubble {
-  background: var(--pink);
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .chat-assistant .chat-bubble {
-  background: #f8eeea;
+  background: #f6f1e7;
 }
 
 .proposal {
@@ -508,7 +515,7 @@ code {
 }
 
 .chat-input textarea:focus {
-  outline: 2px solid var(--pink);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -528,5 +535,357 @@ code {
 
   .chat-message {
     max-width: 100%;
+  }
+}
+
+/* Branding & header */
+
+.app-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.app-header .tabs {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-center {
+  justify-content: center;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+
+.brand p {
+  margin: 2px 0 0;
+}
+
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 2px solid var(--accent);
+  font-size: 1.6rem;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+/* Login */
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.login-card {
+  width: min(380px, 100%);
+}
+
+.login-card .brand h1 {
+  font-size: 1.4rem;
+}
+
+.login-subtitle {
+  text-align: center;
+  margin: 6px 0 4px;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.form-error {
+  color: var(--red);
+  font-size: 0.9rem;
+  margin: 4px 0 10px;
+}
+
+input[type="password"] {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: white;
+  color: var(--text);
+}
+
+input[type="password"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Inventory */
+
+.card-header.wrap {
+  flex-wrap: wrap;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+a.btn-secondary {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.chip-warn:not(.active) {
+  border-color: #f0b4b4;
+  color: var(--red);
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+  padding: 28px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.inventory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inventory-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.inventory-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.inventory-qty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 52px;
+}
+
+.qty-number {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.status-out .qty-number {
+  color: var(--red);
+}
+
+.inventory-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.adjust {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.adjust input[type="number"] {
+  width: 64px;
+  padding: 7px 8px;
+}
+
+.adjust .btn-secondary,
+.adjust .btn-primary {
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+}
+
+.thumb-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+}
+
+.badge {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.badge-ok {
+  background: #e3f3ea;
+  color: #1f6b43;
+}
+
+.badge-low {
+  background: #fff1cc;
+  color: #7a5200;
+}
+
+.badge-out {
+  background: #fde2e1;
+  color: #a33a3a;
+}
+
+.identify-panel,
+.item-form {
+  border: 1px solid var(--accent);
+  background: #fffdf6;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.identify-panel {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.identify-panel .thumb {
+  width: 96px;
+  height: 96px;
+}
+
+.identify-body p {
+  margin: 0 0 8px;
+}
+
+.item-form h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.item-form-photo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 620px) {
+  .inventory-row {
+    grid-template-columns: 48px 1fr auto;
+  }
+
+  .inventory-row .thumb {
+    width: 48px;
+    height: 48px;
+  }
+
+  .inventory-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .identify-panel {
+    grid-template-columns: 64px 1fr;
+  }
+
+  .identify-panel .thumb {
+    width: 64px;
+    height: 64px;
+  }
+
+  .account {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-header {
+    grid-template-columns: 1fr;
+  }
+
+  .app-header .brand p {
+    display: none;
+  }
+
+  .account {
+    justify-content: space-between;
+  }
+
+  .hide-mobile {
+    display: none;
+  }
+
+  .toast {
+    left: 16px;
+    right: 16px;
+    text-align: center;
   }
 }

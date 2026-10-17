@@ -1,7 +1,9 @@
-# 🌸 Flora — Flower Cost Calculator
+# 🌼 Buttercup Blooms
 
-A full-stack app for building flower arrangements, costing them out, and
-saving the combinations you like. Deploys as a single Vercel project.
+Buttercup Blooms' studio app: build flower arrangements and cost them out,
+design them with an AI assistant, and keep track of stationery stock.
+Deploys as a single Vercel project. (The repository keeps its original
+"Flora" name.)
 
 - **Backend:** Express app, run as a Vercel serverless function in
   production (`api/[...path].js` → `server/src/app.js`) or as a normal
@@ -33,6 +35,14 @@ saving the combinations you like. Deploys as a single Vercel project.
   style, size, budget, profit target — and it picks flowers from your
   catalog, checks the numbers, and proposes an arrangement you can open in
   the builder. It only reads data; nothing is saved until you click Save.
+- **Stationery inventory** — wrapping paper, ribbons, bloom bags, greeting
+  cards and tags. Add/use stock with one click, low-stock alerts, and a
+  history of every change. **Identify from photo**: snap an item and the app
+  matches it to existing stock or pre-fills a new item.
+- **Excel copy of inventory** — "Download Excel" builds a workbook (Stock +
+  Movements sheets) from live data on every download, so it's always the
+  latest stock.
+- **Login** — a single username and password protect the whole app.
 
 ## Project layout
 
@@ -84,6 +94,24 @@ docker run --name flora-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=flora -p
 ```
 That matches the default `DATABASE_URL` in `server/.env.example`.
 
+## Login
+
+Every page and API route requires signing in. A brand-new database is
+seeded with:
+
+- Username: `buttercup admin`
+- Password: `Buttercup123`
+
+**Change the password after your first sign-in** (Flower Catalog &
+Settings → Login) — the default is written in this repository. Changing it
+signs out every other browser. Credentials are stored as a scrypt hash in
+the `settings` table; sessions are signed, HTTP-only cookies that last 30
+days.
+
+Forgot the password? Delete the `admin_username` and `admin_password_hash`
+rows from the `settings` table and redeploy (or restart the server); the
+defaults are re-seeded on startup.
+
 ## Arrangement assistant
 
 The **Assistant** tab talks to `POST /api/agent`, which runs a Claude
@@ -95,7 +123,9 @@ cards that open in the builder as a new, unsaved arrangement.
 It needs an Anthropic API key in `ANTHROPIC_API_KEY` (in `server/.env`
 locally, or the Vercel project's Environment Variables). Without one, the
 rest of the app works normally and the assistant explains that it isn't
-set up. Each message makes a few model calls, billed to that key.
+set up. Each message makes a few model calls, billed to that key. The
+same key powers **Identify from photo** in the Inventory tab (one call per
+photo).
 
 ## Deploying to Vercel
 
@@ -158,3 +188,15 @@ refreshing a price sheet just updates prices instead of duplicating rows.
 | PUT    | `/api/arrangements/:id`      | Update a saved arrangement                 |
 | DELETE | `/api/arrangements/:id`      | Delete a saved arrangement                 |
 | POST   | `/api/agent`                 | Send a message to the arrangement assistant |
+| POST   | `/api/auth/login`            | Sign in (sets the session cookie)          |
+| POST   | `/api/auth/logout`           | Sign out                                   |
+| GET    | `/api/auth/me`               | Current user                               |
+| PUT    | `/api/auth/credentials`      | Change username/password                   |
+| GET    | `/api/inventory`             | List stationery items and categories       |
+| POST   | `/api/inventory`             | Add an item                                |
+| PUT    | `/api/inventory/:id`         | Edit an item (count changes are logged)    |
+| POST   | `/api/inventory/:id/adjust`  | Add or use stock (`{ change, reason }`)    |
+| DELETE | `/api/inventory/:id`         | Remove an item                             |
+| GET    | `/api/inventory/movements`   | Recent stock changes                       |
+| POST   | `/api/inventory/identify`    | Identify an item from a photo              |
+| GET    | `/api/inventory/export.xlsx` | Download the live inventory workbook       |
